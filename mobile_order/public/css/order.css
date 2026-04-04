@@ -1,4 +1,4 @@
-/* ==================== 基础样式 ==================== */
+/* ==================== Mobile Order - 移动端样式 ==================== */
 
 * {
     margin: 0;
@@ -39,7 +39,7 @@ html, body {
 
 #app {
     min-height: 100vh;
-    padding-bottom: 70px; /* 为底部购物车栏留出空间 */
+    padding-bottom: 70px;
 }
 
 /* ==================== Header ==================== */
@@ -83,7 +83,7 @@ html, body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    min-height: 50px; /* 移动端友好 */
+    min-height: 50px;
 }
 
 .tab-btn.active {
@@ -223,11 +223,6 @@ html, body {
 .option-btn.selected {
     border-color: var(--primary-color);
     background: rgba(24, 144, 255, 0.05);
-}
-
-.option-btn:empty::after {
-    content: "暂无数据";
-    color: var(--text-light);
 }
 
 /* ==================== Option List (Colors) ==================== */

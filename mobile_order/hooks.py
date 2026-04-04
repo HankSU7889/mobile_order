@@ -13,24 +13,25 @@ doctype_js = {
     "Customer Order": "/assets/mobile_order/js/customer_order.js",
 }
 
-# Website Generator - 创建网页
-# www/order.py → /order
-# www/admin.py → /order/admin
-website_generators = ["Web Page"]
+# 网站路由配置
+# /order → www/order.py
+# /order/admin → www/admin.py
+website_route_rules = [
+    {"from_route": "/order", "to_route": "mobile_order/order"},
+    {"from_route": "/order/admin", "to_route": "mobile_order/order_admin"},
+]
+
+# Web/Portal 静态资源
+# 这些资源会在所有 web 页面加载
+web_include_js = [
+    "/assets/mobile_order/js/order.js",
+    "/assets/mobile_order/js/admin.js",
+]
+
+web_include_css = [
+    "/assets/mobile_order/css/order.css",
+    "/assets/mobile_order/css/admin.css",
+]
 
 # 需要的依赖 App (如无则留空)
 # required_apps = []
-
-# 定时任务 (如有需要)
-# scheduler_events = {
-#     "cron": {
-#         "0 23 * * *": ["mobile_order.tasks.sync_items"]
-#     }
-# }
-
-# Document Events (如有需要)
-# doc_events = {
-#     "Customer Order": {
-#         "on_update": "mobile_order.api.on_order_update"
-#     }
-# }

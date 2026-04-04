@@ -10,40 +10,31 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
         <header class="header">
             <h1>手机下单</h1>
         </header>
 
-        <!-- Mode Tabs -->
         <div class="mode-tabs">
             <button class="tab-btn active" data-mode="series">
-                <span class="tab-icon">📦</span>
-                系列优先
+                <span class="tab-icon">📦</span>系列优先
             </button>
             <button class="tab-btn" data-mode="search">
-                <span class="tab-icon">🔍</span>
-                型号搜索
+                <span class="tab-icon">🔍</span>型号搜索
             </button>
         </div>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Series Mode (Mode A) -->
             <div id="series-mode" class="mode-content active">
-                <!-- Step 1: Select Series -->
                 <div id="step-series" class="step-panel active">
                     <div class="step-header">
                         <span class="step-number">1</span>
                         <h2>选择系列</h2>
                     </div>
                     <div class="option-grid" id="series-grid">
-                        <!-- Series buttons will be loaded here -->
                         <div class="loading">加载中...</div>
                     </div>
                 </div>
 
-                <!-- Step 2: Select Brand -->
                 <div id="step-brand" class="step-panel">
                     <div class="step-header">
                         <span class="step-number">2</span>
@@ -58,7 +49,6 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Select Model -->
                 <div id="step-model" class="step-panel">
                     <div class="step-header">
                         <span class="step-number">3</span>
@@ -73,7 +63,6 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Select Color -->
                 <div id="step-color" class="step-panel">
                     <div class="step-header">
                         <span class="step-number">4</span>
@@ -89,21 +78,17 @@
                 </div>
             </div>
 
-            <!-- Search Mode (Mode B) -->
             <div id="search-mode" class="mode-content">
                 <div class="search-box">
                     <input type="text" id="search-input" placeholder="输入型号搜索，如：S26" autocomplete="off">
                     <button id="search-btn" class="btn-search">搜索</button>
                 </div>
                 <div id="search-results" class="search-results">
-                    <div class="empty-state">
-                        <p>输入型号进行搜索</p>
-                    </div>
+                    <div class="empty-state"><p>输入型号进行搜索</p></div>
                 </div>
             </div>
         </main>
 
-        <!-- Cart Bar (Fixed Bottom) -->
         <div id="cart-bar" class="cart-bar">
             <div class="cart-info">
                 <span class="cart-icon">🛒</span>
@@ -112,7 +97,6 @@
             <button id="checkout-btn" class="btn-checkout" disabled>去结算</button>
         </div>
 
-        <!-- Checkout Modal -->
         <div id="checkout-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -120,18 +104,11 @@
                     <button class="modal-close" data-close="checkout-modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <!-- Cart Items -->
-                    <div class="checkout-items" id="checkout-items">
-                        <!-- Cart items will be loaded here -->
-                    </div>
-
-                    <!-- Customer Name -->
+                    <div class="checkout-items" id="checkout-items"></div>
                     <div class="form-group">
                         <label for="customer-name">客户姓名 *</label>
                         <input type="text" id="customer-name" placeholder="请输入您的姓名" required>
                     </div>
-
-                    <!-- Sales Person -->
                     <div class="form-group">
                         <label for="sales-person-select">业务员</label>
                         <select id="sales-person-select">
@@ -145,7 +122,6 @@
             </div>
         </div>
 
-        <!-- Success Modal -->
         <div id="success-modal" class="modal">
             <div class="modal-content modal-success">
                 <div class="success-icon">✅</div>
@@ -158,10 +134,8 @@
             </div>
         </div>
 
-        <!-- Toast -->
         <div id="toast" class="toast"></div>
     </div>
-
     <script src="/assets/mobile_order/js/order.js"></script>
 </body>
 </html>

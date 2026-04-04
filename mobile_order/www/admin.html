@@ -8,21 +8,17 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
         <header class="header">
             <h1>订单管理</h1>
             <button id="refresh-btn" class="btn-refresh">刷新</button>
         </header>
 
-        <!-- Tabs -->
         <div class="nav-tabs">
             <button class="nav-tab active" data-tab="orders">订单审核</button>
             <button class="nav-tab" data-tab="sales-persons">业务员管理</button>
         </div>
 
-        <!-- Orders Panel -->
         <div id="orders-panel" class="tab-panel active">
-            <!-- Filters -->
             <div class="filters">
                 <select id="status-filter">
                     <option value="">全部状态</option>
@@ -31,14 +27,11 @@
                     <option value="已拒绝">已拒绝</option>
                 </select>
             </div>
-
-            <!-- Orders List -->
             <div id="orders-list" class="list-container">
                 <div class="loading">加载中...</div>
             </div>
         </div>
 
-        <!-- Sales Persons Panel -->
         <div id="sales-persons-panel" class="tab-panel">
             <div class="panel-header">
                 <button id="add-sales-person-btn" class="btn-add">+ 新增业务员</button>
@@ -49,23 +42,17 @@
         </div>
     </div>
 
-    <!-- Order Detail Modal -->
     <div id="order-detail-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>订单详情</h3>
                 <button class="modal-close" data-close="order-detail-modal">&times;</button>
             </div>
-            <div class="modal-body" id="order-detail-body">
-                <!-- Order details will be loaded here -->
-            </div>
-            <div class="modal-footer" id="order-detail-actions">
-                <!-- Action buttons will be loaded here -->
-            </div>
+            <div class="modal-body" id="order-detail-body"></div>
+            <div class="modal-footer" id="order-detail-actions"></div>
         </div>
     </div>
 
-    <!-- Sales Person Modal -->
     <div id="sales-person-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -89,7 +76,6 @@
         </div>
     </div>
 
-    <!-- Reject Modal -->
     <div id="reject-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -108,9 +94,7 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="toast"></div>
-
     <script src="/assets/mobile_order/js/admin.js"></script>
 </body>
 </html>
