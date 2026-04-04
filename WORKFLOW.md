@@ -514,16 +514,16 @@ def get_item_price(item_code, customer=None):
 
 ## 6. 开发步骤详情
 
-### Phase 1: 基础框架
+### Phase 1: 基础框架 ✅
 
 | 步骤 | 命令/操作 | 说明 |
 |------|----------|------|
-| 1.1 | 创建目录结构 | `mobile_order/` + 子目录 |
-| 1.2 | `__init__.py` | Python 包初始化 |
-| 1.3 | `hooks.py` | Frappe 钩子配置 |
-| 1.4 | `pyproject.toml` | 项目配置 |
-| 1.5 | Git 初始化 | `git init`, `git add .`, `git commit` |
-| 1.6 | 推送到 GitHub | `git remote add`, `git push` |
+| 1.1 | 创建目录结构 | `mobile_order/` + 子目录 | ✅ |
+| 1.2 | `__init__.py` | Python 包初始化 | ✅ |
+| 1.3 | `hooks.py` | Frappe 钩子配置 | ✅ |
+| 1.4 | `pyproject.toml` | 项目配置 | ✅ |
+| 1.5 | Git 初始化 | `git init`, `git add .`, `git commit` | ✅ |
+| 1.6 | 推送到 GitHub | `git remote add`, `git push` | ✅ |
 
 ### Phase 2: DocType
 

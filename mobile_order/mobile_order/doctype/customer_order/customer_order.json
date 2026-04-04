@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:CO-{YYYY}-{MM}-{DD}-{####}",
+ "creation": "2026-04-04 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer_name",
+  "sales_person",
+  "order_status",
+  "reject_reason",
+  "section_break_items",
+  "items"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "客户姓名",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "业务员",
+   "options": "Sales Person"
+  },
+  {
+   "fieldname": "order_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "订单状态",
+   "options": "待审核\n已确认\n已拒绝",
+   "reqd": 1,
+   "default": "待审核"
+  },
+  {
+   "fieldname": "reject_reason",
+   "fieldtype": "Text",
+   "label": "拒绝原因",
+   "depends_on": "eval:doc.order_status == '已拒绝'"
+  },
+  {
+   "fieldname": "section_break_items",
+   "fieldtype": "Section Break",
+   "label": "订单明细"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "订单明细",
+   "options": "Customer Order Item",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-04-04 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Mobile Order",
+ "name": "Customer Order",
+ "naming_rule": "Format",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "workflow": []
+}

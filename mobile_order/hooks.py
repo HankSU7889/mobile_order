@@ -10,15 +10,17 @@ translated_languages = ["zh"]
 
 # DocType JS (后台管理页面用)
 doctype_js = {
-    "Customer Order": "public/js/customer_order.js",
-    "Sales Person": "public/js/sales_person.js",
+    "Customer Order": "/assets/mobile_order/js/customer_order.js",
 }
 
-# 网站路由
+# website_route_rules = [
+#     {"from_route": "/order/<path:app_path>", "to_route": "order"},
+# ]
+
 # website_generators = ["Web Page"]
 
-# Web Template (可选，后续使用)
-# web_template = "templates/web_template.html"
+# 需要的依赖 App (如无则留空)
+# required_apps = []
 
 # 定时任务 (如有需要)
 # scheduler_events = {
@@ -33,6 +35,3 @@ doctype_js = {
 #         "on_update": "mobile_order.api.on_order_update"
 #     }
 # }
-
-# 需要的依赖 App (如无则留空)
-# required_apps = []
