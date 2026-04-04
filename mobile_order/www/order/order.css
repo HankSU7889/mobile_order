@@ -355,7 +355,7 @@ html, body {
 
 .empty-state {
     text-align: center;
-    padding: var(--spacing-xl) * 2;
+    padding: calc(var(--spacing-xl) * 2);
     color: var(--text-light);
 }
 

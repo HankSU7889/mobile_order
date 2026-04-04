@@ -2,6 +2,7 @@ import frappe
 from frappe.utils import now_datetime, today
 import json
 from typing import Optional, List, Dict, Any
+from functools import lru_cache
 
 
 # ==================== 工具函数 ====================
@@ -48,35 +49,29 @@ def parse_item_name(item_name: str) -> Optional[Dict[str, str]]:
     }
 
 
-def build_item_index() -> Dict[str, Any]:
+# ==================== 缓存函数 ====================
+
+# 注意：Frappe 请求间不共享内存，这里只是减少单次请求内的重复查询
+
+
+# ==================== API 接口 ====================
+
+@frappe.whitelist()
+def get_item_index() -> Dict[str, Any]:
     """
-    构建产品索引，用于前端筛选
+    获取完整的产品索引（带缓存）
     
-    索引结构：
-    {
-        'series': ['水晶', '潮酷', ...],
-        'brands': {
-            '水晶': ['三星', '苹果', ...],
-            ...
-        },
-        'models': {
-            '水晶-三星': ['S26', 'S25', ...],
-            ...
-        },
-        'items': {
-            '水晶-三星-S26': [
-                {'item_code': 'ITM001', 'color': '透', 'item_name': '原始item_name'},
-                ...
-            ],
-            ...
-        }
-    }
+    用于前端页面初始化时加载所有可选系列/品牌/型号/颜色
     
     Returns:
-        dict: 完整的产品索引
+        dict: 产品索引结构
     """
-    # 查询所有启用的 Item
-    items = frappe.get_all(
+    return _build_item_index_cached()
+
+
+def _get_items_from_erp():
+    """获取所有启用的 Item"""
+    return frappe.get_all(
         "Item",
         filters={
             "disabled": 0,
@@ -84,6 +79,17 @@ def build_item_index() -> Dict[str, Any]:
         },
         fields=["item_code", "item_name", "item_group", "brand"]
     )
+
+
+def _build_item_index_cached() -> Dict[str, Any]:
+    """
+    构建产品索引（内部版本，带请求内缓存）
+    """
+    # 检查是否已有缓存（存储在 frappe.local）
+    if hasattr(frappe.local, 'mobile_order_item_index'):
+        return frappe.local.mobile_order_item_index
+    
+    items = _get_items_from_erp()
     
     # 构建索引
     index = {
@@ -134,22 +140,10 @@ def build_item_index() -> Dict[str, Any]:
     for key in index['models']:
         index['models'][key] = sorted(list(index['models'][key]))
     
+    # 存入缓存
+    frappe.local.mobile_order_item_index = index
+    
     return index
-
-
-# ==================== API 接口 ====================
-
-@frappe.whitelist()
-def get_item_index() -> Dict[str, Any]:
-    """
-    获取完整的产品索引
-    
-    用于前端页面初始化时加载所有可选系列/品牌/型号/颜色
-    
-    Returns:
-        dict: 产品索引结构
-    """
-    return build_item_index()
 
 
 @frappe.whitelist()
@@ -160,7 +154,7 @@ def get_series_list() -> List[str]:
     Returns:
         list: 系列名称列表，按字母排序
     """
-    index = build_item_index()
+    index = _build_item_index_cached()
     return index['series']
 
 
@@ -178,7 +172,7 @@ def get_brands_by_series(series: str) -> List[str]:
     if not series:
         return []
     
-    index = build_item_index()
+    index = _build_item_index_cached()
     return index['brands'].get(series, [])
 
 
@@ -196,7 +190,7 @@ def get_models(series: str = None, brand: str = None) -> List[str]:
     """
     if not series and not brand:
         # 返回所有型号
-        index = build_item_index()
+        index = _build_item_index_cached()
         all_models = set()
         for key, models in index['models'].items():
             all_models.update(models)
@@ -204,7 +198,7 @@ def get_models(series: str = None, brand: str = None) -> List[str]:
     
     if series and brand:
         key = f"{series}-{brand}"
-        index = build_item_index()
+        index = _build_item_index_cached()
         return index['models'].get(key, [])
     
     return []
@@ -227,7 +221,7 @@ def get_colors(series: str, brand: str, model: str) -> List[Dict[str, str]]:
         return []
     
     key = f"{series}-{brand}-{model}"
-    index = build_item_index()
+    index = _build_item_index_cached()
     return index['items'].get(key, [])
 
 
@@ -247,40 +241,31 @@ def search_models(keyword: str) -> List[Dict[str, Any]]:
     
     keyword = keyword.strip().upper()
     
-    # 查询所有包含关键词的 Item
-    items = frappe.get_all(
-        "Item",
-        filters={
-            "disabled": 0
-        },
-        fields=["item_code", "item_name"]
-    )
+    # 使用缓存的索引，只查询一次
+    index = _build_item_index_cached()
     
     results = []
     seen_keys = set()
     
-    for item in items:
-        parsed = parse_item_name(item.item_name)
-        if not parsed:
+    # 遍历所有商品进行匹配
+    for key, items_list in index['items'].items():
+        parts = key.split('-')
+        if len(parts) < 3:
             continue
         
+        series = parts[0]
+        brand = parts[1]
+        model = parts[2]
+        
         # 检查型号是否匹配
-        if keyword in parsed['model'].upper():
-            key = f"{parsed['series']}-{parsed['brand']}-{parsed['model']}"
+        if keyword in model.upper():
             if key not in seen_keys:
                 seen_keys.add(key)
                 results.append({
-                    'series': parsed['series'],
-                    'brand': parsed['brand'],
-                    'model': parsed['model'],
-                    'colors': [
-                        {
-                            'item_code': i['item_code'],
-                            'color': i['color'],
-                            'item_name': i['item_name']
-                        }
-                        for i in build_item_index()['items'].get(key, [])
-                    ]
+                    'series': series,
+                    'brand': brand,
+                    'model': model,
+                    'colors': items_list
                 })
     
     return results
@@ -350,6 +335,13 @@ def submit_order(customer_name: str, sales_person: str = None,
     if not items_list:
         frappe.throw("请选择至少一个商品")
     
+    # 验证所有商品是否存在
+    for item_data in items_list:
+        if not item_data.get("item_code"):
+            frappe.throw("商品代码不能为空")
+        if not frappe.db.exists("Item", item_data.get("item_code")):
+            frappe.throw(f"商品 {item_data.get('item_code')} 不存在")
+    
     # 创建订单
     order = frappe.new_doc("Customer Order")
     order.customer_name = customer_name
@@ -364,8 +356,9 @@ def submit_order(customer_name: str, sales_person: str = None,
             "qty": item_data.get("qty", 1)
         })
     
+    # 保存订单（不再调用 submit，保持草稿状态等待审核）
     order.insert()
-    order.submit()
+    order.save()
     
     return {
         "success": True,
@@ -509,7 +502,6 @@ def approve_order(order_id: str) -> Dict[str, Any]:
     # 更新订单状态
     order.order_status = "已确认"
     order.save()
-    order.reload()
     
     return {
         "success": True,
@@ -542,7 +534,6 @@ def reject_order(order_id: str, reason: str = None) -> Dict[str, Any]:
     order.order_status = "已拒绝"
     order.reject_reason = reason or ""
     order.save()
-    order.reload()
     
     return {
         "success": True,

@@ -13,14 +13,10 @@ doctype_js = {
     "Customer Order": "/assets/mobile_order/js/customer_order.js",
 }
 
-# 网站路由配置
-website_route_rules = [
-    {"from_route": "/order", "to_route": "mobile_order/www/order"},
-    {"from_route": "/order/admin", "to_route": "mobile_order/www/admin"},
-]
-
 # Website Generator - 创建网页
-# website_generators = ["Web Page"]
+# www/order.py → /order
+# www/admin.py → /order/admin
+website_generators = ["Web Page"]
 
 # 需要的依赖 App (如无则留空)
 # required_apps = []

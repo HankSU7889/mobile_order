@@ -15,6 +15,18 @@ const state = {
 // LocalStorage key
 const CART_KEY = 'mobile_order_cart';
 
+// ==================== 工具函数 ====================
+
+/**
+ * HTML 转义，防止 XSS
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ==================== 初始化 ====================
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -173,7 +185,7 @@ function renderSeriesGrid() {
     }
     
     grid.innerHTML = series.map(s => `
-        <button class="option-btn" data-series="${s}">${s}</button>
+        <button class="option-btn" data-series="${escapeHtml(s)}">${escapeHtml(s)}</button>
     `).join('');
     
     // 绑定点击事件
@@ -211,7 +223,7 @@ function renderBrandGrid() {
     }
     
     grid.innerHTML = brands.map(b => `
-        <button class="option-btn" data-brand="${b}">${b}</button>
+        <button class="option-btn" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>
     `).join('');
     
     grid.querySelectorAll('.option-btn').forEach(btn => {
@@ -244,7 +256,7 @@ function renderModelGrid() {
     }
     
     grid.innerHTML = models.map(m => `
-        <button class="option-btn" data-model="${m}">${m}</button>
+        <button class="option-btn" data-model="${escapeHtml(m)}">${escapeHtml(m)}</button>
     `).join('');
     
     grid.querySelectorAll('.option-btn').forEach(btn => {
@@ -277,14 +289,14 @@ function renderColorList() {
     }
     
     list.innerHTML = items.map(item => `
-        <div class="color-item" data-item-code="${item.item_code}">
+        <div class="color-item" data-item-code="${escapeHtml(item.item_code)}">
             <div class="color-info">
-                <div class="color-name">${item.color}</div>
-                <div class="color-code">${item.item_code}</div>
+                <div class="color-name">${escapeHtml(item.color)}</div>
+                <div class="color-code">${escapeHtml(item.item_code)}</div>
             </div>
             <button class="add-cart-btn ${isInCart(item.item_code) ? 'added' : ''}" 
-                    data-item-code="${item.item_code}"
-                    data-item-name="${item.item_name}">
+                    data-item-code="${escapeHtml(item.item_code)}"
+                    data-item-name="${escapeHtml(item.item_name)}">
                 ${isInCart(item.item_code) ? '已添加' : '加入购物车'}
             </button>
         </div>
@@ -322,9 +334,9 @@ async function doSearch() {
         resultsEl.innerHTML = results.map(item => `
             <div class="search-item">
                 <div class="search-item-info">
-                    <div class="search-item-title">${item.series} ${item.brand} ${item.model}</div>
+                    <div class="search-item-title">${escapeHtml(item.series)} ${escapeHtml(item.brand)} ${escapeHtml(item.model)}</div>
                     <div class="search-item-sub">
-                        ${item.colors.map(c => c.color).join(' / ')}
+                        ${item.colors.map(c => escapeHtml(c.color)).join(' / ')}
                     </div>
                 </div>
             </div>
@@ -332,12 +344,12 @@ async function doSearch() {
                 ${item.colors.map(c => `
                     <div class="color-item" style="background: #f9f9f9;">
                         <div class="color-info">
-                            <div class="color-name">${c.color}</div>
-                            <div class="color-code">${c.item_code}</div>
+                            <div class="color-name">${escapeHtml(c.color)}</div>
+                            <div class="color-code">${escapeHtml(c.item_code)}</div>
                         </div>
                         <button class="add-cart-btn ${isInCart(c.item_code) ? 'added' : ''}"
-                                data-item-code="${c.item_code}"
-                                data-item-name="${c.item_name}">
+                                data-item-code="${escapeHtml(c.item_code)}"
+                                data-item-name="${escapeHtml(c.item_name)}">
                             ${isInCart(c.item_code) ? '已添加' : '加入'}
                         </button>
                     </div>
@@ -387,7 +399,7 @@ function addToCart(itemCode, itemName) {
     updateCartDisplay();
     
     // 如果在颜色选择页，更新按钮状态
-    const btn = document.querySelector(`.add-cart-btn[data-item-code="${itemCode}"]`);
+    const btn = document.querySelector(`.add-cart-btn[data-item-code="${CSS.escape(itemCode)}"]`);
     if (btn) {
         btn.classList.add('added');
         btn.textContent = '已添加';
@@ -448,10 +460,10 @@ function renderCheckoutItems() {
     container.innerHTML = state.cart.map(item => `
         <div class="checkout-item">
             <div class="checkout-item-info">
-                <div class="checkout-item-name">${item.item_name}</div>
+                <div class="checkout-item-name">${escapeHtml(item.item_name)}</div>
                 <div class="checkout-item-qty">x ${item.qty}</div>
             </div>
-            <button class="checkout-item-remove" data-item-code="${item.item_code}">删除</button>
+            <button class="checkout-item-remove" data-item-code="${escapeHtml(item.item_code)}">删除</button>
         </div>
     `).join('');
     
@@ -467,7 +479,7 @@ function renderSalesPersonSelect() {
     const persons = state.salesPersons || [];
     
     select.innerHTML = '<option value="">请选择业务员</option>' +
-        persons.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        persons.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
 }
 
 function checkFormValid() {
