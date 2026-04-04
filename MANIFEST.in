@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include pyproject.toml
+recursive-include mobile_order/**/*.py
+recursive-include mobile_order/**/*.json
+recursive-include mobile_order/**/*.js
+recursive-include mobile_order/**/*.html
+recursive-include mobile_order/**/*.css
+recursive-include mobile_order/**/*.csv
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]

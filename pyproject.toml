@@ -1,0 +1,20 @@
+[project]
+name = "mobile_order"
+version = "0.0.1"
+description = "B2B Mobile Order App for ERPNext V15"
+authors = [
+    {name = "SuHongKai", email = "923918316@qq.com"}
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "mobile_order"
+
+[tool.flit.sdist]
+include = ["mobile_order/**"]
+exclude = ["**/*.pyc", ".git", "__pycache__", "*.pyc"]
