@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>手机下单 - Mobile Order</title>
+    <link rel="stylesheet" href="/assets/mobile_order/css/order.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>手机下单</h1>
+        </header>
+
+        <!-- Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="tab-btn active" data-mode="series">
+                <span class="tab-icon">📦</span>
+                系列优先
+            </button>
+            <button class="tab-btn" data-mode="search">
+                <span class="tab-icon">🔍</span>
+                型号搜索
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Series Mode (Mode A) -->
+            <div id="series-mode" class="mode-content active">
+                <!-- Step 1: Select Series -->
+                <div id="step-series" class="step-panel active">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <h2>选择系列</h2>
+                    </div>
+                    <div class="option-grid" id="series-grid">
+                        <!-- Series buttons will be loaded here -->
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Brand -->
+                <div id="step-brand" class="step-panel">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <h2>选择品牌</h2>
+                        <button class="back-btn" data-to-step="series">返回</button>
+                    </div>
+                    <div class="selected-info">
+                        已选系列：<span id="selected-series" class="tag tag-series"></span>
+                    </div>
+                    <div class="option-grid" id="brand-grid">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Select Model -->
+                <div id="step-model" class="step-panel">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <h2>选择型号</h2>
+                        <button class="back-btn" data-to-step="brand">返回</button>
+                    </div>
+                    <div class="selected-info">
+                        已选：<span id="selected-brand-tag" class="tag tag-brand"></span>
+                    </div>
+                    <div class="option-grid" id="model-grid">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Select Color -->
+                <div id="step-color" class="step-panel">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <h2>选择颜色</h2>
+                        <button class="back-btn" data-to-step="model">返回</button>
+                    </div>
+                    <div class="selected-info">
+                        已选：<span id="selected-model-tag" class="tag tag-model"></span>
+                    </div>
+                    <div class="option-list" id="color-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Mode (Mode B) -->
+            <div id="search-mode" class="mode-content">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="输入型号搜索，如：S26" autocomplete="off">
+                    <button id="search-btn" class="btn-search">搜索</button>
+                </div>
+                <div id="search-results" class="search-results">
+                    <div class="empty-state">
+                        <p>输入型号进行搜索</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Cart Bar (Fixed Bottom) -->
+        <div id="cart-bar" class="cart-bar">
+            <div class="cart-info">
+                <span class="cart-icon">🛒</span>
+                <span class="cart-count" id="cart-count">0</span>
+            </div>
+            <button id="checkout-btn" class="btn-checkout" disabled>去结算</button>
+        </div>
+
+        <!-- Checkout Modal -->
+        <div id="checkout-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>确认订单</h3>
+                    <button class="modal-close" data-close="checkout-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Cart Items -->
+                    <div class="checkout-items" id="checkout-items">
+                        <!-- Cart items will be loaded here -->
+                    </div>
+
+                    <!-- Customer Name -->
+                    <div class="form-group">
+                        <label for="customer-name">客户姓名 *</label>
+                        <input type="text" id="customer-name" placeholder="请输入您的姓名" required>
+                    </div>
+
+                    <!-- Sales Person -->
+                    <div class="form-group">
+                        <label for="sales-person-select">业务员</label>
+                        <select id="sales-person-select">
+                            <option value="">请选择业务员</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="submit-order-btn" class="btn-submit" disabled>提交订单</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="success-modal" class="modal">
+            <div class="modal-content modal-success">
+                <div class="success-icon">✅</div>
+                <h3>提交成功</h3>
+                <p>订单号：<span id="success-order-id"></span></p>
+                <p class="success-hint">我们将在24小时内处理您的订单，请等待审核</p>
+                <div class="success-actions">
+                    <button class="btn-secondary" data-close="success-modal">继续下单</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="/assets/mobile_order/js/order.js"></script>
+</body>
+</html>
