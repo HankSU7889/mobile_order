@@ -1,7 +1,7 @@
 [project]
 name = "mobile_order"
 version = "0.0.1"
-description = "B2B Mobile Order App for ERPNext V15"
+description = "B2B Mobile Order App for ERPNext V16"
 authors = [
     {name = "SuHongKai", email = "923918316@qq.com"}
 ]
