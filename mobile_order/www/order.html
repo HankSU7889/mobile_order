@@ -16,16 +16,17 @@
         .search-results .result-group { margin-bottom: 20px; }
         .search-results .result-group-title { font-size: 14px; color: #666; margin-bottom: 10px; padding-left: 5px; }
         .search-results .result-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .item-card { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+        .item-card { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; position: relative; }
+        .item-card .item-qty-badge { position: absolute; top: -8px; right: -8px; background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
         .item-card .item-name { font-size: 14px; margin-bottom: 5px; }
         .item-card .item-group { font-size: 12px; color: #999; margin-bottom: 8px; }
-        .item-card .add-btn { width: 100%; padding: 8px; background: #007AFF; color: white; border: none; border-radius: 5px; }
+        .item-card .add-btn { width: 100%; padding: 8px; background: #007AFF; color: white; border: none; border-radius: 5px; font-size: 14px; }
         .empty-state { text-align: center; padding: 40px; color: #999; }
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
         .cart-info { display: flex; align-items: center; gap: 5px; }
-        .cart-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; display: none; }
-        .btn-checkout { padding: 10px 30px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; }
-        .btn-checkout:disabled { background: #ccc; }
+        .cart-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; display: inline; }
+        .btn-checkout { padding: 10px 30px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .btn-checkout:disabled { background: #ccc; cursor: not-allowed; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal.active { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
@@ -35,20 +36,24 @@
         .modal-footer { padding: 15px; border-top: 1px solid #eee; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #666; }
+        .form-group label .required { color: #ff3b30; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
         .btn-submit { width: 100%; padding: 12px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        .btn-submit:disabled { background: #ccc; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; }
         .toast { background: #333; color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 10px; opacity: 0; transition: opacity 0.3s; }
         .toast.show { opacity: 1; }
         .toast-success { background: #34C759; }
         .toast-error { background: #FF3B30; }
         .toast-warning { background: #FF9500; }
-        .cart-items-list { max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .cart-item-name { font-size: 14px; }
-        .cart-item-qty { color: #666; font-size: 12px; }
-        .cart-item-remove { color: #FF3B30; background: none; border: none; font-size: 20px; cursor: pointer; }
+        .cart-items-list, .checkout-item-list { max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
+        .cart-item, .checkout-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; cursor: pointer; }
+        .cart-item:hover, .checkout-item:hover { background: #f9f9f9; }
+        .cart-item-name, .checkout-item-name { font-size: 14px; flex: 1; }
+        .cart-item-qty, .checkout-item-qty { color: #666; font-size: 12px; margin-left: 10px; }
+        .cart-item-remove, .checkout-item-remove { color: #FF3B30; background: none; border: none; font-size: 14px; cursor: pointer; padding: 5px 10px; }
+        .current-qty { font-size: 12px; color: #666; margin-bottom: 10px; }
+        #item-qty { width: 80px; }
     </style>
 </head>
 <body>
@@ -83,13 +88,14 @@
                     <button class="modal-close" data-close="item-modal">×</button>
                 </div>
                 <div class="modal-body">
+                    <div class="current-qty" id="current-qty"></div>
                     <div class="form-group">
-                        <label>数量</label>
-                        <input type="number" id="item-qty" value="1" min="1">
+                        <label>数量 <span class="required">*</span></label>
+                        <input type="number" id="item-qty" value="1" min="0">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-submit" onclick="addToCart()">添加到购物车</button>
+                    <button class="btn-submit" onclick="addToCart()">确认</button>
                 </div>
             </div>
         </div>
@@ -101,17 +107,21 @@
                     <button class="modal-close" data-close="checkout-modal">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="cart-items-list" id="cart-items"></div>
+                    <div class="cart-items-list" id="checkout-items"></div>
                     <div class="form-group">
-                        <label for="customer-name">客户姓名 *</label>
+                        <label for="customer-name">客户姓名 <span class="required">*</span></label>
                         <input type="text" id="customer-name" placeholder="请输入客户姓名" required>
                     </div>
                     <div class="form-group">
-                        <label for="customer-mobile">客户手机 *</label>
-                        <input type="tel" id="customer-mobile" placeholder="请输入客户手机" required>
+                        <label for="customer-mobile">联系电话 <span class="required">*</span></label>
+                        <input type="tel" id="customer-mobile" placeholder="请输入手机号码" required>
                     </div>
                     <div class="form-group">
-                        <label for="sales-person">业务员 *</label>
+                        <label for="customer-address">详细地址 <span class="required">*</span></label>
+                        <input type="text" id="customer-address" placeholder="请输入详细收货地址" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sales-person">业务员 <span class="required">*</span></label>
                         <select id="sales-person">
                             <option value="">请选择业务员</option>
                         </select>
