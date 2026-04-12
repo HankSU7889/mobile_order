@@ -10,7 +10,13 @@ const state = {
 };
 
 const CART_KEY = 'mobile_order_cart';
-const APP_VERSION = "1.0.4";
+const SEARCH_HISTORY_KEY = 'mobile_order_search_history';
+const APP_VERSION = "1.0.5";
+const MAX_SEARCH_HISTORY = 10;
+
+// Toast 防抖
+let toastTimeout = null;
+let toastQueue = [];
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -28,6 +34,7 @@ async function initApp() {
     bindEvents();
     loadCart();
     updateCartDisplay();
+    loadSearchHistory();
 }
 
 async function callAPI(method, args = {}) {
@@ -83,13 +90,75 @@ function bindEvents() {
     document.getElementById('clear-cart-btn')?.addEventListener('click', clearCart);
     document.getElementById('delete-selected-btn')?.addEventListener('click', deleteSelectedItems);
     
-    // 批发快速添加按钮
     document.querySelectorAll('.qty-fast-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const qty = parseInt(this.dataset.qty);
-            if (qty > 0) {
-                document.getElementById('item-qty').value = qty;
-            }
+            if (qty > 0) document.getElementById('item-qty').value = qty;
+        });
+    });
+    
+    // 搜索历史点击
+    document.querySelectorAll('.search-history-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const keyword = this.dataset.keyword;
+            document.getElementById('search-input').value = keyword;
+            doSearch();
+        });
+    });
+}
+
+// 搜索历史管理
+function loadSearchHistory() {
+    try {
+        const history = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+        renderSearchHistory(history);
+    } catch (e) { }
+}
+
+function saveSearchHistory(keyword) {
+    try {
+        let history = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+        // 移除已存在的相同关键词
+        history = history.filter(h => h !== keyword);
+        // 添加到开头
+        history.unshift(keyword);
+        // 限制数量
+        if (history.length > MAX_SEARCH_HISTORY) {
+            history = history.slice(0, MAX_SEARCH_HISTORY);
+        }
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+        renderSearchHistory(history);
+    } catch (e) { }
+}
+
+function clearSearchHistory() {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+    renderSearchHistory([]);
+}
+
+function renderSearchHistory(history) {
+    const container = document.getElementById('search-history');
+    if (!container) return;
+    
+    if (history.length === 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+    
+    let html = '<div class="search-history-title">搜索历史</div>';
+    history.forEach(keyword => {
+        html += '<div class="search-history-item" data-keyword="' + escapeHtml(keyword) + '">' + escapeHtml(keyword) + '</div>';
+    });
+    container.innerHTML = html;
+    container.style.display = 'block';
+    
+    // 重新绑定点击事件
+    container.querySelectorAll('.search-history-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const kw = this.dataset.keyword;
+            document.getElementById('search-input').value = kw;
+            doSearch();
         });
     });
 }
@@ -209,6 +278,10 @@ function showCartItemDetail(index) {
 async function doSearch() {
     const keyword = document.getElementById('search-input').value.trim();
     if (!keyword) { showToast('请输入搜索关键词', 'warning'); return; }
+    
+    // 保存搜索历史
+    saveSearchHistory(keyword);
+    
     try {
         const results = await callAPI('search_items', {keyword: keyword});
         state.searchResults = results;
@@ -218,6 +291,10 @@ async function doSearch() {
 
 function renderSearchResults(results) {
     const container = document.getElementById('search-results');
+    const historyContainer = document.getElementById('search-history');
+    
+    // 隐藏搜索历史
+    if (historyContainer) historyContainer.style.display = 'none';
     
     if (!results || results.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>未找到相关产品</p></div>';
@@ -276,9 +353,6 @@ function quickMinusFromCart(event, itemCode) {
         state.cart[existingIndex].qty -= 1;
         if (state.cart[existingIndex].qty <= 0) {
             state.cart.splice(existingIndex, 1);
-            showToast('已从购物车移除', 'success');
-        } else {
-            showToast('数量 -1', 'success');
         }
     }
     saveCart();
@@ -299,7 +373,6 @@ function quickAddToCart(event, itemCode) {
     saveCart();
     updateCartDisplay();
     if (state.searchResults.length > 0) renderSearchResults(state.searchResults);
-    showToast('已添加: ' + item.item_name, 'success');
 }
 
 function selectItem(item, cartIndex = null) {
@@ -439,12 +512,30 @@ function addToCart() {
 function showToast(message, type) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+    
+    // 如果有正在显示的 toast，先清除
+    if (toastTimeout) {
+        clearTimeout(toastTimeout);
+        const existing = container.querySelector('.toast');
+        if (existing) existing.remove();
+    }
+    
     const toast = document.createElement('div');
     toast.className = 'toast toast-' + type;
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+    
+    // 短暂延迟后显示
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+    
+    // 2秒后移除
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+        toastTimeout = null;
+    }, 2000);
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
