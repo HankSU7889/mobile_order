@@ -44,7 +44,7 @@
  "links": [],
  "modified": "2026-04-04 00:00:00.000000",
  "modified_by": "Administrator",
- "module": "Mobile Order",
+ "module": "Core",
  "name": "Sales Person",
  "naming_rule": "Field",
  "owner": "Administrator",
