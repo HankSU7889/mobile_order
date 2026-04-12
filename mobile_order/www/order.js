@@ -282,39 +282,51 @@ function renderSearchResults(results) {
         items.forEach(item => {
             const cartItem = state.cart.find(c => c.item_code === item.item_code);
             const qty = cartItem ? cartItem.qty : 0;
+            const qtyBadge = qty > 0 ? '<span class="item-qty-badge">' + qty + '</span>' : '';
             html += '<div class="item-card" data-item-code="' + escapeHtml(item.item_code) + '">' +
-                (qty > 0 ? '<span class="item-qty-badge">' + qty + '</span>' : '') +
+                qtyBadge +
                 '<div class="item-name">' + escapeHtml(item.item_name) + '</div>' +
                 '<div class="item-group">' + escapeHtml(item.item_group || '') + '</div>' +
-                '<button class="add-btn">+' + (qty > 0 ? qty : '') + '</button>' +
+                '<div class="item-actions">' +
+                '<button class="btn-minus" onclick="quickMinusFromCart(event, \'' + escapeHtml(item.item_code) + '\')">-</button>' +
+                '<span class="item-qty-display">' + (qty > 0 ? qty : '') + '</span>' +
+                '<button class="btn-add" onclick="quickAddToCart(event, \'' + escapeHtml(item.item_code) + '\')">+</button>' +
+                '</div>' +
                 '</div>';
         });
         html += '</div></div>';
     }
     
     container.innerHTML = html;
-    
-    container.querySelectorAll('.item-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            if (e.target.classList.contains('add-btn')) {
-                const itemCode = this.dataset.itemCode;
-                const item = results.find(i => i.item_code === itemCode);
-                if (item) {
-                    quickAddToCart(item);
-                }
-            } else {
-                const itemCode = this.dataset.itemCode;
-                const item = results.find(i => i.item_code === itemCode);
-                if (item) selectItem(item);
-            }
-        });
-    });
 }
 
-function quickAddToCart(item) {
-    const existing = state.cart.find(c => c.item_code === item.item_code);
-    if (existing) {
-        existing.qty += 1;
+function quickMinusFromCart(event, itemCode) {
+    event.stopPropagation();
+    const existingIndex = state.cart.findIndex(c => c.item_code === itemCode);
+    if (existingIndex >= 0) {
+        state.cart[existingIndex].qty -= 1;
+        if (state.cart[existingIndex].qty <= 0) {
+            state.cart.splice(existingIndex, 1);
+            showToast('已从购物车移除', 'success');
+        } else {
+            showToast('数量 -1', 'success');
+        }
+    }
+    saveCart();
+    updateCartDisplay();
+    if (state.searchResults.length > 0) {
+        renderSearchResults(state.searchResults);
+    }
+}
+
+function quickAddToCart(event, itemCode) {
+    event.stopPropagation();
+    const item = state.searchResults.find(i => i.item_code === itemCode);
+    if (!item) return;
+    
+    const existingIndex = state.cart.findIndex(c => c.item_code === itemCode);
+    if (existingIndex >= 0) {
+        state.cart[existingIndex].qty += 1;
     } else {
         state.cart.push({
             item_code: item.item_code,
@@ -324,7 +336,9 @@ function quickAddToCart(item) {
     }
     saveCart();
     updateCartDisplay();
-    renderSearchResults(state.searchResults);
+    if (state.searchResults.length > 0) {
+        renderSearchResults(state.searchResults);
+    }
     showToast('已添加: ' + item.item_name, 'success');
 }
 
@@ -550,3 +564,5 @@ function closeModal(id) {
 window.addToCart = addToCart;
 window.showCartItemDetail = showCartItemDetail;
 window.removeFromCart = removeFromCart;
+window.quickAddToCart = quickAddToCart;
+window.quickMinusFromCart = quickMinusFromCart;
