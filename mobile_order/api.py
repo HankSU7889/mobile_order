@@ -11,7 +11,7 @@ def get_item_index() -> Dict[str, Any]:
     items = frappe.get_all(
         "Item",
         filters={"disabled": 0, "variant_of": ["not like", ""]},
-        fields=["item_code", "item_name", "item_group", "brand"]
+        fields=["item_code", "item_name", "item_group", "brand", "description"]
     )
     
     index = {}
@@ -27,7 +27,8 @@ def get_item_index() -> Dict[str, Any]:
             "item_code": item.item_code,
             "item_name": item.item_name,
             "item_group": item.item_group or "",
-            "brand": item.brand or ""
+            "brand": item.brand or "",
+            "description": item.description or ""
         })
     
     frappe.local.mobile_order_item_index = index
@@ -41,17 +42,15 @@ def search_items(keyword: str) -> List[Dict[str, Any]]:
     
     keyword = keyword.strip()
     
-    # 只搜索变体产品（排除模板）
-    items = frappe.get_all(
-        "Item",
-        filters={
-            "disabled": 0,
-            "variant_of": ["not like", ""],
-            "item_name": ["like", "%{0}%".format(keyword)]
-        },
-        fields=["item_code", "item_name", "item_group", "brand"],
-        order_by="item_name"
-    )
+    # 搜索变体产品（排除模板），同时匹配 item_name 和 description
+    items = frappe.db.sql("""
+        SELECT item_code, item_name, item_group, brand, description
+        FROM tabItem
+        WHERE disabled = 0
+        AND variant_of IS NOT NULL AND variant_of != ''
+        AND (item_name LIKE %s OR description LIKE %s)
+        ORDER BY item_name
+    """, ("%" + keyword + "%", "%" + keyword + "%"), as_dict=1)
     
     return items
 
@@ -81,6 +80,7 @@ def get_item_by_code(item_code: str) -> Optional[Dict[str, Any]]:
             "item_name": item.item_name,
             "item_group": item.item_group,
             "brand": item.brand,
+            "description": item.description or ""
         }
     except Exception:
         return None
