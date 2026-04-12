@@ -67,3 +67,27 @@ bench --site yoursitename uninstall-app mobile_order
 ## License
 
 MIT
+
+## Nginx 配置（可选但推荐）
+
+### 问题
+微信/浏览器会对静态资源（JS/CSS）进行缓存，导致更新后客户仍使用旧版本。
+
+### 解决方案
+禁用 `/assets/mobile_order` 路径的缓存：
+
+
+
+或者手动添加以下配置到 `/etc/nginx/conf.d/frappe-bench.conf`：
+
+
+
+然后运行：
+
+
+## 版本历史
+
+- **1.0.3** - 实现缓存破坏机制，JS/CSS 使用版本化 URL
+- **1.0.2** - 增强搜索：同时搜索物料名称和描述，支持缩写查询
+- **1.0.1** - 新增 + 和 - 按钮支持快速增减购物车数量
+- **1.0.0** - 初始版本
