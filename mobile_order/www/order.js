@@ -1,12 +1,9 @@
 // ==================== Mobile Order - Main JavaScript ====================
 
 const state = {
-    mode: 'series',
-    currentStep: 'series',
-    selectedSeries: null,
-    selectedBrand: null,
-    selectedModel: null,
-    itemIndex: null,
+    mode: 'search',
+    selectedItem: null,
+    searchResults: [],
     cart: [],
     salesPersons: []
 };
@@ -25,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function initApp() {
-    await loadItemIndex();
     await loadSalesPersons();
     bindEvents();
     loadCart();
@@ -33,26 +29,19 @@ async function initApp() {
 }
 
 async function callAPI(method, args = {}) {
-    return new Promise((resolve, reject) => {
-        frappe.call({
-            method: `mobile_order.api.${method}`,
-            args: args,
-            callback: function(r) {
-                if (r.exc) reject(r.exc);
-                else resolve(r.message);
-            },
-            error: function(err) { reject(err); }
-        });
+    const url = '/api/method/mobile_order.api.' + method + '?' + new URLSearchParams(args);
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        },
+        credentials: 'include'
     });
-}
-
-async function loadItemIndex() {
-    try {
-        state.itemIndex = await callAPI('get_item_index');
-        renderSeriesGrid();
-    } catch (e) {
-        showToast('加载产品数据失败', 'error');
+    const data = await response.json();
+    if (data.exc) {
+        throw new Error(data.exc);
     }
+    return data.message;
 }
 
 async function loadSalesPersons() {
@@ -65,233 +54,164 @@ async function loadSalesPersons() {
 }
 
 function bindEvents() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() { switchMode(this.dataset.mode); });
-    });
-    
-    document.querySelectorAll('.back-btn').forEach(btn => {
-        btn.addEventListener('click', function() { goToStep(this.dataset.toStep); });
-    });
-    
     document.getElementById('search-btn').addEventListener('click', doSearch);
     document.getElementById('search-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') doSearch();
     });
-    
     document.getElementById('checkout-btn').addEventListener('click', openCheckoutModal);
     document.getElementById('submit-order-btn').addEventListener('click', submitOrder);
-    
     document.querySelectorAll('[data-close]').forEach(btn => {
         btn.addEventListener('click', function() { closeModal(this.dataset.close); });
     });
-    
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', function(e) {
             if (e.target === this) this.classList.remove('active');
         });
     });
-    
     document.getElementById('customer-name').addEventListener('input', checkFormValid);
 }
 
-function switchMode(mode) {
-    state.mode = mode;
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-    });
-    document.getElementById('series-mode').classList.toggle('active', mode === 'series');
-    document.getElementById('search-mode').classList.toggle('active', mode === 'search');
-    if (mode === 'search') {
-        document.getElementById('search-results').innerHTML = '<div class="empty-state"><p>输入型号进行搜索</p></div>';
-    }
-}
-
-function goToStep(step) {
-    state.currentStep = step;
-    document.querySelectorAll('.step-panel').forEach(panel => {
-        panel.classList.remove('active');
-    });
-    document.getElementById(`step-${step}`).classList.add('active');
-}
-
-function renderSeriesGrid() {
-    const grid = document.getElementById('series-grid');
-    const series = state.itemIndex.series || [];
-    if (series.length === 0) {
-        grid.innerHTML = '<div class="empty-state">暂无可用系列</div>';
-        return;
-    }
-    grid.innerHTML = series.map(s => 
-        `<button class="option-btn" data-series="${escapeHtml(s)}">${escapeHtml(s)}</button>`
-    ).join('');
-    grid.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', function() { selectSeries(this.dataset.series); });
-    });
-}
-
-function selectSeries(series) {
-    state.selectedSeries = series;
-    state.selectedBrand = null;
-    state.selectedModel = null;
-    document.getElementById('selected-series').textContent = series;
-    renderBrandGrid();
-    goToStep('brand');
-}
-
-function renderBrandGrid() {
-    const grid = document.getElementById('brand-grid');
-    const brands = state.itemIndex.brands[state.selectedSeries] || [];
-    if (brands.length === 0) {
-        grid.innerHTML = '<div class="empty-state">暂无可用品牌</div>';
-        return;
-    }
-    grid.innerHTML = brands.map(b => 
-        `<button class="option-btn" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`
-    ).join('');
-    grid.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', function() { selectBrand(this.dataset.brand); });
-    });
-}
-
-function selectBrand(brand) {
-    state.selectedBrand = brand;
-    state.selectedModel = null;
-    document.getElementById('selected-brand-tag').textContent = `${state.selectedSeries} / ${brand}`;
-    renderModelGrid();
-    goToStep('model');
-}
-
-function renderModelGrid() {
-    const grid = document.getElementById('model-grid');
-    const key = `${state.selectedSeries}-${state.selectedBrand}`;
-    const models = state.itemIndex.models[key] || [];
-    if (models.length === 0) {
-        grid.innerHTML = '<div class="empty-state">暂无可用型号</div>';
-        return;
-    }
-    grid.innerHTML = models.map(m => 
-        `<button class="option-btn" data-model="${escapeHtml(m)}">${escapeHtml(m)}</button>`
-    ).join('');
-    grid.querySelectorAll('.option-btn').forEach(btn => {
-        btn.addEventListener('click', function() { selectModel(this.dataset.model); });
-    });
-}
-
-function selectModel(model) {
-    state.selectedModel = model;
-    document.getElementById('selected-model-tag').textContent = 
-        `${state.selectedSeries} / ${state.selectedBrand} / ${model}`;
-    renderColorList();
-    goToStep('color');
-}
-
-function renderColorList() {
-    const list = document.getElementById('color-list');
-    const key = `${state.selectedSeries}-${state.selectedBrand}-${state.selectedModel}`;
-    const items = state.itemIndex.items[key] || [];
-    if (items.length === 0) {
-        list.innerHTML = '<div class="empty-state">暂无可用颜色</div>';
-        return;
-    }
-    list.innerHTML = items.map(item => `
-        <div class="color-item">
-            <div class="color-info">
-                <div class="color-name">${escapeHtml(item.color)}</div>
-                <div class="color-code">${escapeHtml(item.item_code)}</div>
-            </div>
-            <button class="add-cart-btn ${isInCart(item.item_code) ? 'added' : ''}" 
-                    data-item-code="${escapeHtml(item.item_code)}"
-                    data-item-name="${escapeHtml(item.item_name)}">
-                ${isInCart(item.item_code) ? '已添加' : '加入购物车'}
-            </button>
-        </div>
-    `).join('');
-    list.querySelectorAll('.add-cart-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            addToCart(this.dataset.itemCode, this.dataset.itemName);
-        });
-    });
-}
-
 async function doSearch() {
-    const input = document.getElementById('search-input');
-    const keyword = input.value.trim();
+    const keyword = document.getElementById('search-input').value.trim();
     if (!keyword) {
-        showToast('请输入搜索关键词', 'error');
+        showToast('请输入搜索关键词', 'warning');
         return;
     }
-    const resultsEl = document.getElementById('search-results');
-    resultsEl.innerHTML = '<div class="loading">搜索中...</div>';
+    
     try {
-        const results = await callAPI('search_models', {keyword: keyword});
-        if (!results || results.length === 0) {
-            resultsEl.innerHTML = '<div class="empty-state">未找到匹配的型号</div>';
-            return;
-        }
-        resultsEl.innerHTML = results.map(item => `
-            <div class="search-item">
-                <div class="search-item-info">
-                    <div class="search-item-title">${escapeHtml(item.series)} ${escapeHtml(item.brand)} ${escapeHtml(item.model)}</div>
-                    <div class="search-item-sub">${item.colors.map(c => escapeHtml(c.color)).join(' / ')}</div>
-                </div>
-            </div>
-            <div class="color-list" style="margin-bottom: 12px;">
-                ${item.colors.map(c => `
-                    <div class="color-item" style="background: #f9f9f9;">
-                        <div class="color-info">
-                            <div class="color-name">${escapeHtml(c.color)}</div>
-                            <div class="color-code">${escapeHtml(c.item_code)}</div>
-                        </div>
-                        <button class="add-cart-btn ${isInCart(c.item_code) ? 'added' : ''}"
-                                data-item-code="${escapeHtml(c.item_code)}"
-                                data-item-name="${escapeHtml(c.item_name)}">
-                            ${isInCart(c.item_code) ? '已添加' : '加入'}
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-        `).join('');
-        resultsEl.querySelectorAll('.add-cart-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                addToCart(this.dataset.itemCode, this.dataset.itemName);
-            });
-        });
+        const results = await callAPI('search_items', {keyword: keyword});
+        state.searchResults = results;
+        renderSearchResults(results);
     } catch (e) {
-        resultsEl.innerHTML = '<div class="empty-state">搜索失败，请重试</div>';
-        showToast('搜索失败', 'error');
+        showToast('搜索失败: ' + e, 'error');
     }
 }
 
-function isInCart(itemCode) {
-    return state.cart.some(item => item.item_code === itemCode);
-}
-
-function addToCart(itemCode, itemName) {
-    const existing = state.cart.find(item => item.item_code === itemCode);
-    if (existing) {
-        showToast('该商品已在购物车', 'error');
+function renderSearchResults(results) {
+    const container = document.getElementById('search-results');
+    
+    if (!results || results.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>未找到相关产品</p></div>';
         return;
     }
-    state.cart.push({ item_code: itemCode, item_name: itemName, qty: 1 });
-    saveCart();
-    updateCartDisplay();
-    const btn = document.querySelector(`.add-cart-btn[data-item-code="${CSS.escape(itemCode)}"]`);
-    if (btn) {
-        btn.classList.add('added');
-        btn.textContent = '已添加';
+    
+    // 按系列分组显示
+    const grouped = {};
+    results.forEach(item => {
+        const series = item.item_group ? item.item_group.split('-')[0] : item.item_name.split('-')[0];
+        if (!grouped[series]) grouped[series] = [];
+        grouped[series].push(item);
+    });
+    
+    let html = '';
+    for (const [series, items] of Object.entries(grouped)) {
+        html += '<div class="result-group">';
+        html += '<h3 class="result-group-title">' + escapeHtml(series) + '</h3>';
+        html += '<div class="result-items">';
+        items.forEach(item => {
+            html += '<div class="item-card" data-item-code="' + escapeHtml(item.item_code) + '">' +
+                '<div class="item-name">' + escapeHtml(item.item_name) + '</div>' +
+                '<div class="item-group">' + escapeHtml(item.item_group || '') + '</div>' +
+                '</div>';
+        });
+        html += '</div></div>';
     }
-    showToast('已加入购物车', 'success');
+    
+    container.innerHTML = html;
+    
+    container.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const itemCode = this.dataset.itemCode;
+            const item = results.find(i => i.item_code === itemCode);
+            if (item) selectItem(item);
+        });
+    });
 }
 
-function removeFromCart(itemCode) {
-    state.cart = state.cart.filter(item => item.item_code !== itemCode);
-    saveCart();
-    updateCartDisplay();
-    renderCheckoutItems();
+function selectItem(item) {
+    state.selectedItem = item;
+    document.getElementById('selected-item-name').textContent = item.item_name;
+    document.getElementById('item-qty').value = 1;
+    openModal('item-modal');
 }
 
-function saveCart() {
-    localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+function renderSalesPersonSelect() {
+    const select = document.getElementById('sales-person');
+    if (!select) return;
+    
+    let html = '<option value="">请选择业务员</option>';
+    state.salesPersons.forEach(sp => {
+        html += '<option value="' + escapeHtml(sp.name) + '">' + escapeHtml(sp.sales_person_name) + '</option>';
+    });
+    select.innerHTML = html;
+}
+
+function openCheckoutModal() {
+    if (state.cart.length === 0) {
+        showToast('购物车是空的', 'warning');
+        return;
+    }
+    openModal('checkout-modal');
+    checkFormValid();
+}
+
+function checkFormValid() {
+    const name = document.getElementById('customer-name').value.trim();
+    const mobile = document.getElementById('customer-mobile').value.trim();
+    const sp = document.getElementById('sales-person').value;
+    const btn = document.getElementById('submit-order-btn');
+    btn.disabled = !(name && mobile && sp);
+}
+
+async function submitOrder() {
+    const name = document.getElementById('customer-name').value.trim();
+    const mobile = document.getElementById('customer-mobile').value.trim();
+    const sp = document.getElementById('sales-person').value;
+    const remarks = document.getElementById('order-remarks').value.trim();
+    
+    if (!name || !mobile || !sp) {
+        showToast('请填写完整信息', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById('submit-order-btn');
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    
+    try {
+        const data = {
+            customer_name: name,
+            customer_mobile: mobile,
+            sales_person: sp,
+            remarks: remarks,
+            items: state.cart.map(c => ({
+                item_code: c.item_code,
+                qty: c.qty,
+                rate: 0
+            }))
+        };
+        
+        const result = await callAPI('create_customer_order', {data: JSON.stringify(data)});
+        
+        if (result.success) {
+            showToast('订单提交成功！订单号: ' + result.order_id, 'success');
+            state.cart = [];
+            saveCart();
+            updateCartDisplay();
+            closeModal('checkout-modal');
+            document.getElementById('customer-name').value = '';
+            document.getElementById('customer-mobile').value = '';
+            document.getElementById('sales-person').value = '';
+            document.getElementById('order-remarks').value = '';
+        } else {
+            showToast('提交失败: ' + result.message, 'error');
+        }
+    } catch (e) {
+        showToast('提交失败: ' + e, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '提交订单';
+    }
 }
 
 function loadCart() {
@@ -301,99 +221,90 @@ function loadCart() {
     } catch (e) { state.cart = []; }
 }
 
-function updateCartDisplay() {
-    document.getElementById('cart-count').textContent = state.cart.length;
-    document.getElementById('checkout-btn').disabled = state.cart.length === 0;
+function saveCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
 
-function openCheckoutModal() {
+function updateCartDisplay() {
+    const count = state.cart.reduce((sum, c) => sum + c.qty, 0);
+    const badge = document.getElementById('cart-badge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline' : 'none';
+    }
+    
+    const list = document.getElementById('cart-items');
+    if (!list) return;
+    
     if (state.cart.length === 0) {
-        showToast('购物车是空的', 'error');
+        list.innerHTML = '<div class="empty-state"><p>购物车是空的</p></div>';
         return;
     }
-    renderCheckoutItems();
-    renderSalesPersonSelect();
-    checkFormValid();
-    openModal('checkout-modal');
-}
-
-function renderCheckoutItems() {
-    const container = document.getElementById('checkout-items');
-    container.innerHTML = state.cart.map(item => `
-        <div class="checkout-item">
-            <div class="checkout-item-info">
-                <div class="checkout-item-name">${escapeHtml(item.item_name)}</div>
-                <div class="checkout-item-qty">x ${item.qty}</div>
-            </div>
-            <button class="checkout-item-remove" data-item-code="${escapeHtml(item.item_code)}">删除</button>
-        </div>
-    `).join('');
-    container.querySelectorAll('.checkout-item-remove').forEach(btn => {
-        btn.addEventListener('click', function() { removeFromCart(this.dataset.itemCode); });
+    
+    list.innerHTML = state.cart.map((c, i) => 
+        '<div class="cart-item">' +
+        '<div class="cart-item-info">' +
+        '<div class="cart-item-name">' + escapeHtml(c.item_name) + '</div>' +
+        '<div class="cart-item-qty">x ' + c.qty + '</div>' +
+        '</div>' +
+        '<button class="cart-item-remove" data-index="' + i + '">×</button>' +
+        '</div>'
+    ).join('');
+    
+    list.querySelectorAll('.cart-item-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.index);
+            state.cart.splice(idx, 1);
+            saveCart();
+            updateCartDisplay();
+        });
     });
 }
 
-function renderSalesPersonSelect() {
-    const select = document.getElementById('sales-person-select');
-    const persons = state.salesPersons || [];
-    select.innerHTML = '<option value="">请选择业务员</option>' +
-        persons.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
-}
-
-function checkFormValid() {
-    const customerName = document.getElementById('customer-name').value.trim();
-    document.getElementById('submit-order-btn').disabled = !customerName;
-}
-
-async function submitOrder() {
-    const customerName = document.getElementById('customer-name').value.trim();
-    const salesPerson = document.getElementById('sales-person-select').value;
-    if (!customerName) {
-        showToast('请填写客户姓名', 'error');
-        return;
-    }
-    if (state.cart.length === 0) {
-        showToast('购物车是空的', 'error');
-        return;
-    }
-    const submitBtn = document.getElementById('submit-order-btn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = '提交中...';
-    try {
-        const result = await callAPI('submit_order', {
-            customer_name: customerName,
-            sales_person: salesPerson || null,
-            items: JSON.stringify(state.cart)
+function addToCart() {
+    const qty = parseInt(document.getElementById('item-qty').value) || 1;
+    const item = state.selectedItem;
+    if (!item) return;
+    
+    const existing = state.cart.find(c => c.item_code === item.item_code);
+    if (existing) {
+        existing.qty += qty;
+    } else {
+        state.cart.push({
+            item_code: item.item_code,
+            item_name: item.item_name,
+            qty: qty
         });
-        if (result.success) {
-            state.cart = [];
-            saveCart();
-            updateCartDisplay();
-            document.getElementById('success-order-id').textContent = result.order_id;
-            closeModal('checkout-modal');
-            openModal('success-modal');
-        } else {
-            showToast(result.message || '提交失败', 'error');
-        }
-    } catch (e) {
-        showToast('提交失败：' + e, 'error');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交订单';
     }
+    
+    saveCart();
+    updateCartDisplay();
+    closeModal('item-modal');
+    showToast('已添加到购物车', 'success');
 }
 
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-}
-
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
+function showToast(message, type) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
     toast.textContent = message;
-    toast.className = `toast active ${type}`;
-    setTimeout(() => { toast.classList.remove('active'); }, 2500);
+    container.appendChild(toast);
+    
+    setTimeout(() => { toast.classList.add('show'); }, 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
+
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+window.addToCart = addToCart;

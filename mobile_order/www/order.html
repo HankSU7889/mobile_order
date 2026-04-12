@@ -3,117 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>手机下单 - Mobile Order</title>
-    <link rel="stylesheet" href="/assets/mobile_order/css/order.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; background: #f5f5f5; }
+        .header { background: #007AFF; color: white; padding: 15px; text-align: center; }
+        .header h1 { font-size: 18px; }
+        .main-content { padding: 15px; padding-bottom: 80px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-box input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .btn-search { padding: 12px 20px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .search-results .result-group { margin-bottom: 20px; }
+        .search-results .result-group-title { font-size: 14px; color: #666; margin-bottom: 10px; padding-left: 5px; }
+        .search-results .result-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .item-card { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+        .item-card .item-name { font-size: 14px; margin-bottom: 5px; }
+        .item-card .item-group { font-size: 12px; color: #999; margin-bottom: 8px; }
+        .item-card .add-btn { width: 100%; padding: 8px; background: #007AFF; color: white; border: none; border-radius: 5px; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .cart-info { display: flex; align-items: center; gap: 5px; }
+        .cart-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; display: none; }
+        .btn-checkout { padding: 10px 30px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; }
+        .btn-checkout:disabled { background: #ccc; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; }
+        .modal-body { padding: 15px; }
+        .modal-footer { padding: 15px; border-top: 1px solid #eee; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #666; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+        .btn-submit { width: 100%; padding: 12px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .btn-submit:disabled { background: #ccc; }
+        .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; }
+        .toast { background: #333; color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 10px; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { opacity: 1; }
+        .toast-success { background: #34C759; }
+        .toast-error { background: #FF3B30; }
+        .toast-warning { background: #FF9500; }
+        .cart-items-list { max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .cart-item-name { font-size: 14px; }
+        .cart-item-qty { color: #666; font-size: 12px; }
+        .cart-item-remove { color: #FF3B30; background: none; border: none; font-size: 20px; cursor: pointer; }
+    </style>
 </head>
 <body>
     <div id="app">
         <header class="header">
-            <h1>手机下单</h1>
+            <h1>📱 手机下单</h1>
         </header>
 
-        <div class="mode-tabs">
-            <button class="tab-btn active" data-mode="series">
-                <span class="tab-icon">📦</span>系列优先
-            </button>
-            <button class="tab-btn" data-mode="search">
-                <span class="tab-icon">🔍</span>型号搜索
-            </button>
-        </div>
-
         <main class="main-content">
-            <div id="series-mode" class="mode-content active">
-                <div id="step-series" class="step-panel active">
-                    <div class="step-header">
-                        <span class="step-number">1</span>
-                        <h2>选择系列</h2>
-                    </div>
-                    <div class="option-grid" id="series-grid">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-
-                <div id="step-brand" class="step-panel">
-                    <div class="step-header">
-                        <span class="step-number">2</span>
-                        <h2>选择品牌</h2>
-                        <button class="back-btn" data-to-step="series">返回</button>
-                    </div>
-                    <div class="selected-info">
-                        已选系列：<span id="selected-series" class="tag tag-series"></span>
-                    </div>
-                    <div class="option-grid" id="brand-grid">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-
-                <div id="step-model" class="step-panel">
-                    <div class="step-header">
-                        <span class="step-number">3</span>
-                        <h2>选择型号</h2>
-                        <button class="back-btn" data-to-step="brand">返回</button>
-                    </div>
-                    <div class="selected-info">
-                        已选：<span id="selected-brand-tag" class="tag tag-brand"></span>
-                    </div>
-                    <div class="option-grid" id="model-grid">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-
-                <div id="step-color" class="step-panel">
-                    <div class="step-header">
-                        <span class="step-number">4</span>
-                        <h2>选择颜色</h2>
-                        <button class="back-btn" data-to-step="model">返回</button>
-                    </div>
-                    <div class="selected-info">
-                        已选：<span id="selected-model-tag" class="tag tag-model"></span>
-                    </div>
-                    <div class="option-list" id="color-list">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="输入型号搜索，如：17、S26" autocomplete="off">
+                <button id="search-btn" class="btn-search">搜索</button>
             </div>
-
-            <div id="search-mode" class="mode-content">
-                <div class="search-box">
-                    <input type="text" id="search-input" placeholder="输入型号搜索，如：S26" autocomplete="off">
-                    <button id="search-btn" class="btn-search">搜索</button>
-                </div>
-                <div id="search-results" class="search-results">
-                    <div class="empty-state"><p>输入型号进行搜索</p></div>
-                </div>
+            <div id="search-results" class="search-results">
+                <div class="empty-state"><p>👆 输入关键词搜索产品</p></div>
             </div>
         </main>
 
-        <div id="cart-bar" class="cart-bar">
+        <div class="cart-bar">
             <div class="cart-info">
-                <span class="cart-icon">🛒</span>
-                <span class="cart-count" id="cart-count">0</span>
+                <span>🛒</span>
+                <span>购物车</span>
+                <span class="cart-badge" id="cart-badge">0</span>
             </div>
             <button id="checkout-btn" class="btn-checkout" disabled>去结算</button>
+        </div>
+
+        <div id="item-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="selected-item-name">选择产品</h3>
+                    <button class="modal-close" data-close="item-modal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>数量</label>
+                        <input type="number" id="item-qty" value="1" min="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-submit" onclick="addToCart()">添加到购物车</button>
+                </div>
+            </div>
         </div>
 
         <div id="checkout-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3>确认订单</h3>
-                    <button class="modal-close" data-close="checkout-modal">&times;</button>
+                    <button class="modal-close" data-close="checkout-modal">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="checkout-items" id="checkout-items"></div>
+                    <div class="cart-items-list" id="cart-items"></div>
                     <div class="form-group">
                         <label for="customer-name">客户姓名 *</label>
-                        <input type="text" id="customer-name" placeholder="请输入您的姓名" required>
+                        <input type="text" id="customer-name" placeholder="请输入客户姓名" required>
                     </div>
                     <div class="form-group">
-                        <label for="sales-person-select">业务员</label>
-                        <select id="sales-person-select">
+                        <label for="customer-mobile">客户手机 *</label>
+                        <input type="tel" id="customer-mobile" placeholder="请输入客户手机" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sales-person">业务员 *</label>
+                        <select id="sales-person">
                             <option value="">请选择业务员</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="order-remarks">备注</label>
+                        <input type="text" id="order-remarks" placeholder="可选">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -122,19 +127,7 @@
             </div>
         </div>
 
-        <div id="success-modal" class="modal">
-            <div class="modal-content modal-success">
-                <div class="success-icon">✅</div>
-                <h3>提交成功</h3>
-                <p>订单号：<span id="success-order-id"></span></p>
-                <p class="success-hint">我们将在24小时内处理您的订单，请等待审核</p>
-                <div class="success-actions">
-                    <button class="btn-secondary" data-close="success-modal">继续下单</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="toast" class="toast"></div>
+        <div id="toast-container" class="toast-container"></div>
     </div>
     <script src="/assets/mobile_order/js/order.js"></script>
 </body>
