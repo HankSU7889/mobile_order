@@ -10,6 +10,7 @@ const state = {
 };
 
 const CART_KEY = 'mobile_order_cart';
+const APP_VERSION = "1.0.3";
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -469,12 +470,14 @@ async function submitOrder() {
 function loadCart() {
     try {
         const saved = localStorage.getItem(CART_KEY);
+const APP_VERSION = "1.0.3";
         if (saved) state.cart = JSON.parse(saved);
     } catch (e) { state.cart = []; }
 }
 
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+const APP_VERSION = "1.0.3";
 }
 
 function updateCartDisplay() {
