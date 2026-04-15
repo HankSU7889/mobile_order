@@ -82,7 +82,7 @@ function renderTable() {
     const tbody = document.getElementById('inventory-tbody');
 
     if (state.items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">📭</div><p>没有找到符合条件的物料</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><div class="icon">📭</div><p>没有找到符合条件的物料</p></div></td></tr>';
         return;
     }
 
@@ -91,9 +91,7 @@ function renderTable() {
             <td><span class="item-code">${escapeHtml(item.item_code)}</span></td>
             <td class="item-name"><div class="item-name-text">${escapeHtml(item.item_name)}</div></td>
             <td>${escapeHtml(item.item_group || '-')}</td>
-            <td>${item.brand ? `<span class="brand-tag">${escapeHtml(item.brand)}</span>` : '-'}</td>
             <td>${item.disabled ? '<span class="disabled-tag">停售</span>' : '<span class="enabled-tag">在售</span>'}</td>
-            <td class="date-text">${item.modified ? new Date(item.modified).toLocaleString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'}</td>
         </tr>
     `).join('');
 }
