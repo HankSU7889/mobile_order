@@ -42,22 +42,29 @@ async function callAPI(method, args = {}) {
 async function loadInventory(page = 1) {
     state.page = page;
     const keyword = document.getElementById('filter-keyword').value.trim();
-    const productSeries = document.getElementById('filter-series').value;
+    const seriesValue = document.getElementById('filter-series').value;
     const brand = document.getElementById('filter-brand').value;
     const status = document.getElementById('filter-status').value;
+
+    // 区分前缀筛选（__prefix:）和精确系列筛选
+    const apiParams = {
+        keyword,
+        brand,
+        status,
+        page,
+        page_size: state.pageSize
+    };
+    if (seriesValue && seriesValue.startsWith('__prefix:')) {
+        apiParams.series_prefix = seriesValue.slice(9); // 去掉 "__prefix:" 前缀
+    } else if (seriesValue) {
+        apiParams.product_series = seriesValue;
+    }
 
     const tbody = document.getElementById('inventory-tbody');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载中...</td></tr>';
 
     try {
-        const result = await callAPI('get_inventory_items', {
-            keyword,
-            product_series: productSeries,
-            brand,
-            status,
-            page,
-            page_size: state.pageSize
-        });
+        const result = await callAPI('get_inventory_items', apiParams);
 
         state.items = result.items;
         state.total = result.total;
@@ -125,17 +132,32 @@ function updateStats() {
 
 async function loadFilterOptions() {
     try {
-        const [groups, brands] = await Promise.all([
-            callAPI('get_inventory_item_groups'),
+        const [prefixes, brands] = await Promise.all([
+            callAPI('get_inventory_series_prefixes'),
             callAPI('get_inventory_brands')
         ]);
 
-        state.itemGroups = groups;
+        state.seriesPrefixes = prefixes;
         state.brands = brands;
 
+        // 构建系列下拉：分组前缀（缩进）+ 各系列
         const seriesSelect = document.getElementById('filter-series');
-        seriesSelect.innerHTML = '<option value="">全部系列</option>' +
-            groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+        const allOptions = [];
+
+        for (const group of prefixes) {
+            // 添加分组前缀选项（特殊值以 __prefix: 开头）
+            allOptions.push(
+                `<option value="__prefix:${escapeHtml(group.prefix)}">▸ ${escapeHtml(group.prefix)} (${group.count}个系列)</option>`
+            );
+            // 添加该前缀下的各系列（缩进）
+            for (const s of group.series) {
+                allOptions.push(
+                    `<option value="${escapeHtml(s)}">&nbsp;&nbsp;&nbsp;${escapeHtml(s)}</option>`
+                );
+            }
+        }
+
+        seriesSelect.innerHTML = '<option value="">全部系列</option>' + allOptions.join('');
 
         const brandSelect = document.getElementById('filter-brand');
         brandSelect.innerHTML = '<option value="">全部品牌</option>' +

@@ -218,6 +218,7 @@ def _get_item_groups_for_brand(brand: str) -> List[str]:
 def get_inventory_items(
     keyword: str = "",
     product_series: str = "",
+    series_prefix: str = "",
     brand: str = "",
     status: str = "",   # "active" | "discontinued" | ""
     page: int = 1,
@@ -226,7 +227,8 @@ def get_inventory_items(
     """
     获取库存物料列表，支持：
     - keyword: 搜索物料名称/编码/品牌
-    - product_series: 按产品系列筛选（对应 item_group）
+    - product_series: 按产品系列筛选（对应 item_group，精确匹配）
+    - series_prefix: 按产品系列前缀筛选（前 N 位相同则合并，如"光晖"匹配所有以"光晖"开头的 item_group）
     - brand: 按品牌筛选
     - status: "active"=在售(disabled=0), "discontinued"=停售(disabled=1), ""=全部
     """
@@ -248,6 +250,10 @@ def get_inventory_items(
     if product_series:
         filters.append("item_group = %s")
         params.append(product_series)
+
+    if series_prefix:
+        filters.append("item_group LIKE %s")
+        params.append(series_prefix + "%")
 
     if brand:
         matching_groups = _get_item_groups_for_brand(brand)
@@ -293,6 +299,38 @@ def get_inventory_item_groups() -> List[str]:
 
 
 @frappe.whitelist(allow_guest=True)
+def get_inventory_series_prefixes() -> Dict[str, Any]:
+    """
+    返回系列前缀分组列表，每个分组包含前缀和该前缀下的所有系列。
+    前缀 = item_group 前 2 位相同的合并为一个筛选选项。
+    返回格式：[{"prefix": "光晖", "count": 5, "series": ["光晖基础三星", "光晖基础华为", "光晖折叠", ...]}, ...]
+    """
+    groups = frappe.get_all(
+        "Item",
+        fields=["item_group"],
+        distinct=True,
+        filters={"item_group": ["not like", ""]}
+    )
+    prefix_map: dict[str, list[str]] = {}
+    for g in groups:
+        if not g.item_group or len(g.item_group) < 2:
+            continue
+        prefix = g.item_group[:2]
+        if prefix not in prefix_map:
+            prefix_map[prefix] = []
+        if g.item_group not in prefix_map[prefix]:
+            prefix_map[prefix].append(g.item_group)
+
+    result = [
+        {"prefix": p, "count": len_series, "series": sorted(series_list)}
+        for p, series_list in prefix_map.items()
+        if (len_series := len(series_list)) > 0
+    ]
+    result.sort(key=lambda x: x["prefix"])
+    return result
+
+
+@frappe.whitelist(allow_guest=True)
 def get_inventory_brands() -> List[str]:
     """
     从 item_group 字段解析品牌：
@@ -326,6 +364,7 @@ def get_inventory_brands() -> List[str]:
 def export_inventory_excel(
     keyword: str = "",
     product_series: str = "",
+    series_prefix: str = "",
     brand: str = "",
     status: str = ""
 ) -> Dict[str, Any]:
@@ -352,6 +391,10 @@ def export_inventory_excel(
     if product_series:
         filters.append("item_group = %s")
         params.append(product_series)
+
+    if series_prefix:
+        filters.append("item_group LIKE %s")
+        params.append(series_prefix + "%")
 
     if brand:
         matching_groups = _get_item_groups_for_brand(brand)
