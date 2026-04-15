@@ -42,9 +42,9 @@ async function callAPI(method, args = {}) {
 async function loadInventory(page = 1) {
     state.page = page;
     const keyword = document.getElementById('filter-keyword').value.trim();
-    const itemGroup = document.getElementById('filter-group').value;
+    const productSeries = document.getElementById('filter-series').value;
     const brand = document.getElementById('filter-brand').value;
-    const includeDisabled = document.getElementById('filter-disabled').checked;
+    const status = document.getElementById('filter-status').value;
 
     const tbody = document.getElementById('inventory-tbody');
     tbody.innerHTML = '<tr class="loading-row"><td colspan="6">加载中...</td></tr>';
@@ -52,9 +52,9 @@ async function loadInventory(page = 1) {
     try {
         const result = await callAPI('get_inventory_items', {
             keyword,
-            item_group: itemGroup,
+            product_series: productSeries,
             brand,
-            include_disabled: includeDisabled,
+            status,
             page,
             page_size: state.pageSize
         });
@@ -85,7 +85,7 @@ function renderTable() {
             <td class="item-name"><div class="item-name-text">${escapeHtml(item.item_name)}</div></td>
             <td>${escapeHtml(item.item_group || '-')}</td>
             <td>${item.brand ? `<span class="brand-tag">${escapeHtml(item.brand)}</span>` : '-'}</td>
-            <td>${item.disabled ? '<span class="disabled-tag">已禁用</span>' : '<span class="enabled-tag">启用</span>'}</td>
+            <td>${item.disabled ? '<span class="disabled-tag">停售</span>' : '<span class="enabled-tag">在售</span>'}</td>
             <td class="date-text">${item.modified ? new Date(item.modified).toLocaleString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'}</td>
         </tr>
     `).join('');
@@ -133,8 +133,8 @@ async function loadFilterOptions() {
         state.itemGroups = groups;
         state.brands = brands;
 
-        const groupSelect = document.getElementById('filter-group');
-        groupSelect.innerHTML = '<option value="">全部系列</option>' +
+        const seriesSelect = document.getElementById('filter-series');
+        seriesSelect.innerHTML = '<option value="">全部系列</option>' +
             groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
 
         const brandSelect = document.getElementById('filter-brand');
@@ -147,26 +147,26 @@ async function loadFilterOptions() {
 
 function resetFilters() {
     document.getElementById('filter-keyword').value = '';
-    document.getElementById('filter-group').value = '';
+    document.getElementById('filter-series').value = '';
     document.getElementById('filter-brand').value = '';
-    document.getElementById('filter-disabled').checked = false;
+    document.getElementById('filter-status').value = '';
     loadInventory(1);
 }
 
 async function exportExcel() {
     const keyword = document.getElementById('filter-keyword').value.trim();
-    const itemGroup = document.getElementById('filter-group').value;
+    const productSeries = document.getElementById('filter-series').value;
     const brand = document.getElementById('filter-brand').value;
-    const includeDisabled = document.getElementById('filter-disabled').checked;
+    const status = document.getElementById('filter-status').value;
 
     showToast('正在生成 Excel 文件...', 'info');
 
     try {
         const result = await callAPI('export_inventory_excel', {
             keyword,
-            item_group: itemGroup,
+            product_series: productSeries,
             brand,
-            include_disabled: includeDisabled
+            status
         });
 
         // 触发下载

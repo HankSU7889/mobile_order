@@ -27,8 +27,7 @@
         .filter-btn:active { background: #0066CC; }
         .filter-btn.secondary { background: white; color: #666; border: 1px solid #ddd; }
         .filter-btn.secondary:active { background: #f0f0f0; }
-        .include-disabled { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; margin-left: 10px; }
-        .include-disabled input { width: 16px; height: 16px; }
+        .include-disabled { display: none; }
 
         /* ==================== Stats Bar ==================== */
         .stats-bar { background: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; font-size: 13px; color: #666; }
@@ -126,16 +125,17 @@
         <div class="filters">
             <div class="filter-row">
                 <input type="text" class="filter-input" id="filter-keyword" placeholder="搜索物料名称、编码、品牌..." autocomplete="off">
-                <select class="filter-select" id="filter-group">
+                <select class="filter-select" id="filter-series">
                     <option value="">全部系列</option>
                 </select>
                 <select class="filter-select" id="filter-brand">
                     <option value="">全部品牌</option>
                 </select>
-                <label class="include-disabled">
-                    <input type="checkbox" id="filter-disabled">
-                    含禁用
-                </label>
+                <select class="filter-select" id="filter-status">
+                    <option value="">全部状态</option>
+                    <option value="active">在售</option>
+                    <option value="discontinued">停售</option>
+                </select>
             </div>
             <div class="filter-row">
                 <button class="filter-btn" onclick="loadInventory(1)">🔍 搜索</button>
@@ -176,6 +176,6 @@
 
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="/assets/mobile_order/js/inventory.js?v=1.0.1"></script>
+    <script src="/assets/mobile_order/js/inventory.js?v=1.0.2"></script>
 </body>
 </html>
