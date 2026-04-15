@@ -235,34 +235,34 @@ def get_inventory_items(
 
 @frappe.whitelist(allow_guest=True)
 def get_inventory_item_groups() -> List[str]:
-    """返回产品系列名称列表（固定来源于物品导出表格）"""
-    return sorted(PRODUCT_SERIES)
+    """从 item_group 字段获取所有不重复的值（直接来自 ERPNext Item Group）"""
+    groups = frappe.get_all(
+        "Item",
+        fields=["item_group"],
+        distinct=True,
+        filters={"item_group": ["not like", ""]}
+    )
+    return sorted([g.item_group for g in groups if g.item_group])
 
 
 @frappe.whitelist(allow_guest=True)
 def get_inventory_brands() -> List[str]:
     """
-    从 item_name 解析品牌：
-    - 格式：{series_prefix}{brand}-{model}-{color}，如"光晖基础三星-S26-橙"
-    - 规则：在第一段中找 PRODUCT_SERIES 最长前缀匹配，剩余部分=品牌
-    - 精确匹配系列前缀时（如"光晖折叠"），品牌为空
+    从 item_group 字段解析品牌：
+    item_group 格式如 "光晖基础三星" -> 系列="光晖基础"（在PRODUCT_SERIES中），品牌="三星"
+    纯系列如 "光晖折叠" -> 无品牌
     """
-    items = frappe.db.sql("""
-        SELECT DISTINCT item_name
-        FROM tabItem
-        WHERE disabled = 0
-        AND item_name IS NOT NULL AND item_name != ""
-        AND item_name LIKE "%-%-%"
-        LIMIT 5000
-    """)
-
+    groups = frappe.get_all(
+        "Item",
+        fields=["item_group"],
+        distinct=True,
+        filters={"item_group": ["not like", ""]}
+    )
     brands = set()
-    for (item_name,) in items:
-        parts = item_name.split("-")
-        if len(parts) < 2:
+    for g in groups:
+        if not g.item_group:
             continue
-        first = parts[0]
-        # 找最长匹配的前缀
+        first = g.item_group
         best = None
         for series in PRODUCT_SERIES:
             if first.startswith(series):
