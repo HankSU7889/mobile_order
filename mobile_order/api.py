@@ -172,6 +172,48 @@ PRODUCT_SERIES = [
 ]
 
 
+def _derive_brand_from_item_group(item_group: str) -> str:
+    """从 item_group 字段解析品牌，逻辑同 get_inventory_brands"""
+    if not item_group:
+        return ""
+    first = item_group
+    best = None
+    for series in PRODUCT_SERIES:
+        if first.startswith(series):
+            if best is None or len(series) > len(best):
+                best = series
+    if best:
+        return first[len(best):]
+    return ""
+
+
+# 品牌→item_group 列表的缓存（按需构建）
+_BRAND_GROUPS_CACHE: dict = {}
+
+
+def _get_item_groups_for_brand(brand: str) -> List[str]:
+    """返回指定品牌对应的所有 item_group 值（用于 SQL IN 筛选）"""
+    global _BRAND_GROUPS_CACHE
+    if _BRAND_GROUPS_CACHE:
+        return _BRAND_GROUPS_CACHE.get(brand, [])
+
+    groups = frappe.get_all(
+        "Item",
+        fields=["item_group"],
+        distinct=True,
+        filters={"item_group": ["not like", ""]}
+    )
+    cache: dict[str, list] = {}
+    for g in groups:
+        if not g.item_group:
+            continue
+        b = _derive_brand_from_item_group(g.item_group)
+        if b:
+            cache.setdefault(b, []).append(g.item_group)
+    _BRAND_GROUPS_CACHE = cache
+    return cache.get(brand, [])
+
+
 @frappe.whitelist(allow_guest=True)
 def get_inventory_items(
     keyword: str = "",
@@ -208,8 +250,13 @@ def get_inventory_items(
         params.append(product_series)
 
     if brand:
-        filters.append("brand = %s")
-        params.append(brand)
+        matching_groups = _get_item_groups_for_brand(brand)
+        if matching_groups:
+            placeholders = ', '.join(['%s'] * len(matching_groups))
+            filters.append(f"item_group IN ({placeholders})")
+            params.extend(matching_groups)
+        else:
+            filters.append("1=0")
 
     where_clause = " AND ".join(filters) if filters else "disabled = 0"
 
@@ -307,8 +354,13 @@ def export_inventory_excel(
         params.append(product_series)
 
     if brand:
-        filters.append("brand = %s")
-        params.append(brand)
+        matching_groups = _get_item_groups_for_brand(brand)
+        if matching_groups:
+            placeholders = ', '.join(['%s'] * len(matching_groups))
+            filters.append(f"item_group IN ({placeholders})")
+            params.extend(matching_groups)
+        else:
+            filters.append("1=0")
 
     where_clause = " AND ".join(filters) if filters else "disabled = 0"
 
