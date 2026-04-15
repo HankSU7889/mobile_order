@@ -483,7 +483,79 @@ function updateCartDisplay() {
     if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
     const checkoutBtn = document.getElementById('checkout-btn');
     if (checkoutBtn) checkoutBtn.disabled = count === 0;
+    updateDesktopCartSidebar();
+    updateDesktopCartToggle();
 }
+
+function isDesktop() { return window.innerWidth >= 1024; }
+
+function updateDesktopCartToggle() {
+    const sidebar = document.getElementById('cart-sidebar');
+    if (sidebar) sidebar.style.display = isDesktop() ? 'flex' : 'none';
+}
+
+function updateDesktopCartSidebar() {
+    if (!isDesktop()) return;
+    const countEl = document.getElementById('sidebar-cart-count');
+    const itemsEl = document.getElementById('sidebar-cart-items');
+    const deleteBtn = document.getElementById('sidebar-delete-selected');
+    const checkoutBtn = document.getElementById('sidebar-checkout-btn');
+    if (!countEl || !itemsEl) return;
+
+    const total = state.cart.reduce((sum, c) => sum + c.qty, 0);
+    countEl.textContent = `(${total})`;
+    if (checkoutBtn) checkoutBtn.disabled = state.cart.length === 0;
+
+    if (state.cart.length === 0) {
+        itemsEl.innerHTML = '<div class="empty-state"><p>购物车是空的</p></div>';
+        if (deleteBtn) deleteBtn.disabled = true;
+        return;
+    }
+
+    if (deleteBtn) deleteBtn.disabled = state.selectedItemsInCart.size === 0;
+    itemsEl.innerHTML = state.cart.map((item, i) => `
+        <div class="cart-item${state.selectedItemsInCart.has(i) ? ' selected' : ''}">
+            <div class="cart-item-checkbox"><input type="checkbox" ${state.selectedItemsInCart.has(i) ? 'checked' : ''} onchange="toggleCartItemSelection(${i})"></div>
+            <div class="cart-item-info" onclick="editCartItem(${i})"><div class="cart-item-name">${item.item_name}</div><div class="cart-item-qty">x ${item.qty}</div></div>
+            <button class="cart-item-remove" onclick="removeFromCart(${i})">删除</button>
+        </div>
+    `).join('');
+}
+
+window.addEventListener('resize', function() {
+    updateDesktopCartToggle();
+    updateDesktopCartSidebar();
+});
+
+function toggleCartItemSelection(index) {
+    if (state.selectedItemsInCart.has(index)) state.selectedItemsInCart.delete(index);
+    else state.selectedItemsInCart.add(index);
+    renderCartItemsList();
+    updateDesktopCartSidebar();
+}
+
+function editCartItem(index) {
+    const item = state.cart[index];
+    state.selectedItem = item;
+    state.selectedCartIndex = index;
+    document.getElementById('selected-item-name').textContent = item.item_name;
+    document.getElementById('current-qty').textContent = `当前数量: ${item.qty}`;
+    document.getElementById('item-qty').value = item.qty;
+    openModal('item-modal');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateDesktopCartToggle();
+    document.getElementById('sidebar-select-all')?.addEventListener('click', function() {
+        if (state.selectedItemsInCart.size === state.cart.length) { state.selectedItemsInCart.clear(); this.textContent = '全选'; }
+        else { state.cart.forEach((_, i) => state.selectedItemsInCart.add(i)); this.textContent = '取消全选'; }
+        renderCartItemsList();
+        updateDesktopCartSidebar();
+    });
+    document.getElementById('sidebar-delete-selected')?.addEventListener('click', function() { deleteSelectedItems(); });
+    document.getElementById('sidebar-clear-cart')?.addEventListener('click', function() { clearCart(); });
+    document.getElementById('sidebar-checkout-btn')?.addEventListener('click', function() { goToCheckout(); });
+});
 
 function addToCart() {
     const qty = parseInt(document.getElementById('item-qty').value) || 1;
@@ -547,3 +619,4 @@ window.removeFromCart = removeFromCart;
 window.quickAddToCart = quickAddToCart;
 window.quickMinusFromCart = quickMinusFromCart;
 window.openQtyModal = openQtyModal;
+window.openCheckoutModal = openCheckoutModal;
