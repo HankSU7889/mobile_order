@@ -241,13 +241,38 @@ def get_inventory_item_groups() -> List[str]:
 
 @frappe.whitelist(allow_guest=True)
 def get_inventory_brands() -> List[str]:
-    brands = frappe.get_all(
-        "Item",
-        fields=["brand"],
-        distinct=True,
-        filters={"brand": ["!=", ""]}
-    )
-    return [b.brand for b in brands if b.brand]
+    """
+    从 item_name 解析品牌：
+    - 格式：{series_prefix}{brand}-{model}-{color}，如"光晖基础三星-S26-橙"
+    - 规则：在第一段中找 PRODUCT_SERIES 最长前缀匹配，剩余部分=品牌
+    - 精确匹配系列前缀时（如"光晖折叠"），品牌为空
+    """
+    items = frappe.db.sql("""
+        SELECT DISTINCT item_name
+        FROM tabItem
+        WHERE disabled = 0
+        AND item_name IS NOT NULL AND item_name != ""
+        AND item_name LIKE "%-%-%"
+        LIMIT 5000
+    """)
+
+    brands = set()
+    for (item_name,) in items:
+        parts = item_name.split("-")
+        if len(parts) < 2:
+            continue
+        first = parts[0]
+        # 找最长匹配的前缀
+        best = None
+        for series in PRODUCT_SERIES:
+            if first.startswith(series):
+                if best is None or len(series) > len(best):
+                    best = series
+        if best:
+            brand = first[len(best):]
+            if brand:
+                brands.add(brand)
+    return sorted(brands)
 
 
 @frappe.whitelist(allow_guest=True)
