@@ -140,24 +140,12 @@ async function loadFilterOptions() {
         state.seriesPrefixes = prefixes;
         state.brands = brands;
 
-        // 构建系列下拉：分组前缀（缩进）+ 各系列
+        // 系列下拉：只保留合并后的前缀分组
         const seriesSelect = document.getElementById('filter-series');
-        const allOptions = [];
-
-        for (const group of prefixes) {
-            // 添加分组前缀选项（特殊值以 __prefix: 开头）
-            allOptions.push(
-                `<option value="__prefix:${escapeHtml(group.prefix)}">▸ ${escapeHtml(group.prefix)} (${group.count}个系列)</option>`
-            );
-            // 添加该前缀下的各系列（缩进）
-            for (const s of group.series) {
-                allOptions.push(
-                    `<option value="${escapeHtml(s)}">&nbsp;&nbsp;&nbsp;${escapeHtml(s)}</option>`
-                );
-            }
-        }
-
-        seriesSelect.innerHTML = '<option value="">全部系列</option>' + allOptions.join('');
+        seriesSelect.innerHTML = '<option value="">全部系列</option>' +
+            prefixes.map(g =>
+                `<option value="__prefix:${escapeHtml(g.prefix)}">${escapeHtml(g.prefix)} (${g.count}个系列)</option>`
+            ).join('');
 
         const brandSelect = document.getElementById('filter-brand');
         brandSelect.innerHTML = '<option value="">全部品牌</option>' +
@@ -177,19 +165,21 @@ function resetFilters() {
 
 async function exportExcel() {
     const keyword = document.getElementById('filter-keyword').value.trim();
-    const productSeries = document.getElementById('filter-series').value;
+    const seriesValue = document.getElementById('filter-series').value;
     const brand = document.getElementById('filter-brand').value;
     const status = document.getElementById('filter-status').value;
+
+    const apiParams = { keyword, brand, status };
+    if (seriesValue && seriesValue.startsWith('__prefix:')) {
+        apiParams.series_prefix = seriesValue.slice(9);
+    } else if (seriesValue) {
+        apiParams.product_series = seriesValue;
+    }
 
     showToast('正在生成 Excel 文件...', 'info');
 
     try {
-        const result = await callAPI('export_inventory_excel', {
-            keyword,
-            product_series: productSeries,
-            brand,
-            status
-        });
+        const result = await callAPI('export_inventory_excel', apiParams);
 
         // 触发下载
         const link = document.createElement('a');
