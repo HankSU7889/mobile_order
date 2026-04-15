@@ -13,15 +13,18 @@ doctype_js = {
 # 网站路由配置
 # /order → order.html + order.py (在 mobile_order/www/ 下)
 # /order/admin → admin.html + admin.py
+# /inventory → inventory.html + inventory.py
 website_route_rules = [
     {"from_route": "/order", "to_route": "order"},
     {"from_route": "/order/admin", "to_route": "admin"},
+    {"from_route": "/inventory", "to_route": "inventory"},
 ]
 
 # Web/Portal 静态资源
 web_include_js = [
     "/assets/mobile_order/js/order.js",
     "/assets/mobile_order/js/admin.js",
+    "/assets/mobile_order/js/inventory.js",
 ]
 
 web_include_css = [
